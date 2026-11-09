@@ -1,0 +1,555 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Encuestas del 29-N – elecciones generales 2026</title>
+<meta name="description" content="Todas las encuestas publicadas para las elecciones generales del 29 de noviembre de 2026, con su evolución y la media de las últimas dos semanas.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%F0%9F%97%B3%EF%B8%8F%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,600;12..96,700&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #172033;
+    --muted: #5b6475;
+    --rule: #e1e5ec;
+    --bg: #f8f9fb;
+    --display: "Bricolage Grotesque", "Hanken Grotesk", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 400 1rem/1.55 "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+
+  header { padding: 48px 0 32px; }
+  h1 {
+    font: 700 clamp(2.5rem, 7.5vw, 4.6rem)/0.98 var(--display);
+    letter-spacing: -0.03em;
+    margin: 0 0 16px;
+  }
+  .lede { max-width: 58ch; font-size: 1.1rem; color: var(--muted); margin: 0; }
+  .lede strong { color: var(--ink); font-weight: 600; }
+
+  section { padding: 30px 0 34px; border-top: 1px solid var(--rule); }
+  h2 { font: 600 1.3rem/1.2 var(--display); letter-spacing: -0.01em; margin: 0 0 6px; }
+  .note { color: var(--muted); font-size: 0.9rem; margin: 0 0 22px; max-width: 72ch; }
+
+  /* media */
+  .avgs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 0; }
+  .avg { padding: 2px 16px; border-left: 3px solid var(--c); }
+  .avg .name { font-weight: 600; }
+  .avg .num {
+    font: 600 clamp(2rem, 5vw, 3.1rem)/1.05 var(--display);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+  .avg .num small { font-size: 0.45em; font-weight: 500; margin-left: 2px; color: var(--muted); }
+  .avg .delta { color: var(--muted); font-size: 0.88rem; font-variant-numeric: tabular-nums; }
+  @media (max-width: 720px) {
+    .avgs { grid-template-columns: repeat(2, 1fr); row-gap: 22px; }
+  }
+
+  /* controles */
+  .controls { display: flex; flex-wrap: wrap; gap: 14px 28px; align-items: center; justify-content: space-between; margin: 16px 0 10px; }
+  .group { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    appearance: none; background: none; cursor: pointer;
+    border: 1px solid var(--rule); border-radius: 999px;
+    padding: 5px 13px 5px 10px; font: inherit; font-size: 0.9rem; color: var(--muted);
+    display: inline-flex; align-items: center; gap: 7px;
+  }
+  .chip i { width: 10px; height: 10px; border-radius: 50%; border: 2px solid var(--c); display: inline-block; }
+  .chip[aria-pressed="true"] { color: var(--ink); background: #fff; border-color: #c5ccd8; }
+  .chip[aria-pressed="true"] i { background: var(--c); }
+  .seg { display: inline-flex; gap: 2px; border-bottom: 1px solid var(--rule); }
+  .seg button {
+    appearance: none; background: none; border: 0; border-bottom: 2px solid transparent;
+    margin-bottom: -1px; padding: 6px 10px; font: inherit; font-size: 0.9rem; color: var(--muted); cursor: pointer;
+  }
+  .seg button[aria-pressed="true"] { color: var(--ink); border-bottom-color: var(--ink); font-weight: 600; }
+  .options { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px; }
+  .smooth { display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--muted); }
+  .smooth[hidden] { display: none; }
+  .smooth input { width: 120px; accent-color: var(--ink); }
+  .smooth output { min-width: 4.4em; color: var(--ink); font-variant-numeric: tabular-nums; }
+  button:focus-visible { outline: 2px solid #1F78C8; outline-offset: 2px; }
+
+  /* gráfico */
+  .chartbox { position: relative; background: #fff; border: 1px solid var(--rule); border-radius: 4px; }
+  svg { display: block; width: 100%; height: auto; touch-action: pan-y; }
+  .tick { font-size: 11.5px; fill: var(--muted); font-family: "Hanken Grotesk", system-ui, sans-serif; }
+  .vline { stroke: #eef0f4; stroke-width: 1; }
+  .hline { stroke: var(--rule); stroke-width: 1; }
+  .elec { stroke: #8a93a3; stroke-width: 1.2; }
+  .eleclabel { font-size: 12px; fill: var(--ink); font-weight: 600; font-family: "Hanken Grotesk", system-ui, sans-serif; }
+  .tip {
+    position: absolute; display: none; pointer-events: none; min-width: 180px;
+    background: #fff; border: 1px solid #cfd5df; border-radius: 6px; padding: 9px 11px;
+    font-size: 0.85rem; box-shadow: 0 2px 12px rgba(23, 32, 51, 0.14); z-index: 2;
+  }
+  .tip .who { font-weight: 600; }
+  .tip .meta { color: var(--muted); margin-bottom: 6px; }
+  .tip .row { display: flex; align-items: center; gap: 7px; font-variant-numeric: tabular-nums; }
+  .tip .row i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+  .tip .row b { margin-left: auto; padding-left: 14px; font-weight: 500; }
+  .tip .row.on { font-weight: 700; }
+  .tip .row.on b { font-weight: 700; }
+
+  /* tabla */
+  .tablewrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.93rem; min-width: 640px; }
+  th, td { padding: 9px 10px; border-bottom: 1px solid var(--rule); text-align: left; vertical-align: baseline; }
+  th { font-weight: 600; color: var(--muted); font-size: 0.85rem; border-bottom-color: #c5ccd8; }
+  th.r, td.r { text-align: right; font-variant-numeric: tabular-nums; }
+  td.r.top { font-weight: 700; }
+  td.date { white-space: nowrap; color: var(--muted); }
+  .more {
+    appearance: none; margin-top: 16px; background: #fff; cursor: pointer;
+    border: 1px solid #c5ccd8; border-radius: 4px; padding: 8px 16px; font: inherit; color: var(--ink);
+  }
+  .more:hover { background: #f0f2f6; }
+
+  footer { border-top: 1px solid var(--rule); padding: 26px 0 48px; color: var(--muted); font-size: 0.88rem; }
+  footer p { max-width: 78ch; margin: 0 0 10px; }
+  footer a { color: var(--ink); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Encuestas del 29-N</h1>
+    <p class="lede" id="lede"></p>
+  </header>
+
+  <section aria-labelledby="h-avg">
+    <h2 id="h-avg">Media de las últimas dos semanas</h2>
+    <p class="note" id="avgnote"></p>
+    <div class="avgs" id="avgs"></div>
+  </section>
+
+  <section aria-labelledby="h-chart">
+    <h2 id="h-chart">Evolución de las encuestas</h2>
+    <p class="note">Pasa el ratón por encima (o toca) un punto para ver la encuesta.</p>
+    <div class="controls">
+      <div class="group" id="chips" role="group" aria-label="Partidos"></div>
+      <div class="options">
+        <div class="seg" id="range" role="group" aria-label="Periodo">
+          <button type="button" data-v="call" aria-pressed="false">Desde la convocatoria</button>
+          <button type="button" data-v="2026" aria-pressed="true">2026</button>
+          <button type="button" data-v="6m" aria-pressed="false">Últimos 6 meses</button>
+          <button type="button" data-v="all" aria-pressed="false">Desde 2023</button>
+        </div>
+        <div class="seg" id="mode" role="group" aria-label="Tipo de gráfico">
+          <button type="button" data-v="line" aria-pressed="true">Línea</button>
+          <button type="button" data-v="points" aria-pressed="false">Puntos</button>
+          <button type="button" data-v="trend" aria-pressed="false">Tendencia</button>
+        </div>
+        <label class="smooth" id="smoothbox" hidden>Suavizado
+          <input type="range" id="sigma" min="2" max="30" step="1" value="7" aria-label="Suavizado de la tendencia, en días">
+          <output id="sigmaout" for="sigma">7 días</output>
+        </label>
+      </div>
+    </div>
+    <div class="chartbox" id="chartbox">
+      <svg id="chart" role="img" aria-label="Gráfico con la evolución de la intención de voto de cada partido según las encuestas"></svg>
+      <div class="tip" id="tip"></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="h-table">
+    <h2 id="h-table">Últimas encuestas</h2>
+    <p class="note">La cifra más alta de cada encuesta va en negrita.</p>
+    <div class="tablewrap">
+      <table>
+        <thead><tr id="thead"></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <button type="button" class="more" id="more">Ver más encuestas</button>
+  </section>
+
+  <footer>
+    <p>Los datos salen de la tabla de encuestas de Wikipedia (<a href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_2026_Spanish_general_election">Opinion polling for the 2026 Spanish general election</a>). La fecha de cada encuesta es el punto medio de su trabajo de campo.</p>
+    <p>Frente Amplio incluye a Front València. No se cuentan las encuestas de PSOE, The Objective, CIS, SW Demoscopia/La Séptima, VOX/The Objective ni SocioMétrica/PP. La tendencia es una media con pesos gaussianos: el control de suavizado marca cuántos días a cada lado cuentan (más días, línea más lisa), y cada punto pesa menos cuando una misma encuestadora publica muchas seguidas.</p>
+    <p id="updated"></p>
+  </footer>
+</div>
+
+<script src="polls.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  var MONTHS = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+  var DAY = 864e5;
+  var ELECTION = Date.UTC(2026, 10, 29);
+  var PARTIES = [
+    { k: 'PP',            c: '#1F78C8' },
+    { k: 'PSOE',          c: '#E8222B' },
+    { k: 'Vox',           c: '#5FB82C' },
+    { k: 'Frente Amplio', c: '#ff430a' },
+    { k: 'Podemos',       c: '#8A5CF6' }
+  ];
+
+  var polls = (window.POLLS || []).map(function (r) {
+    var o = Object.assign({}, r);
+    o.t = Date.parse(r.date + 'T00:00:00Z');
+    return o;
+  }).sort(function (a, b) { return a.t - b.t; });
+
+  var $ = function (id) { return document.getElementById(id); };
+  var fmtDate = function (t) {
+    var d = new Date(t);
+    return d.getUTCDate() + ' ' + MONTHS[d.getUTCMonth()] + ' ' + d.getUTCFullYear();
+  };
+  var fmtNum = function (v) { return v == null ? '–' : v.toFixed(1).replace('.', ','); };
+
+  if (!polls.length) {
+    $('lede').textContent = 'No se han podido cargar las encuestas.';
+    return;
+  }
+
+  var state = { range: '2026', mode: 'line', on: {}, shown: 12, sigma: 7 };
+  PARTIES.forEach(function (p) { state.on[p.k] = true; });
+
+  var last = polls[polls.length - 1].t;
+
+  /* ---------- cabecera ---------- */
+  (function () {
+    var now = new Date();
+    var today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+    var days = Math.round((ELECTION - today) / DAY);
+    var msg;
+    if (days > 1) msg = 'Faltan <strong>' + days + ' días</strong> para las elecciones generales del 29 de noviembre.';
+    else if (days === 1) msg = '<strong>Mañana</strong> son las elecciones generales.';
+    else if (days === 0) msg = '<strong>Hoy</strong> son las elecciones generales.';
+    else msg = 'Las elecciones generales fueron el 29 de noviembre.';
+    $('lede').innerHTML = msg + ' Aquí están las encuestas publicadas desde 2023 y la media de las últimas dos semanas.';
+    $('updated').textContent = 'Última encuesta añadida: ' + fmtDate(last) + '.';
+  })();
+
+  /* ---------- medias ---------- */
+  function windowPolls(endT) {
+    var start = endT - 14 * DAY, latest = {};
+    polls.forEach(function (p) {
+      if (p.t > start && p.t <= endT) latest[p.pollster] = p; // ordenadas: la última gana
+    });
+    return latest;
+  }
+  function avgOf(latest, key) {
+    var vals = [];
+    Object.keys(latest).forEach(function (n) { if (latest[n][key] != null) vals.push(latest[n][key]); });
+    if (!vals.length) return null;
+    return vals.reduce(function (a, b) { return a + b; }, 0) / vals.length;
+  }
+  (function () {
+    var cur = windowPolls(last), prev = windowPolls(last - 14 * DAY);
+    var nFirms = Object.keys(cur).length;
+    $('avgnote').textContent =
+      'Se coge la última encuesta de cada empresa entre el ' + fmtDate(last - 13 * DAY) + ' y el ' +
+      fmtDate(last) + ' (' + nFirms + ' empresas) y se hace la media simple. La cifra pequeña compara con las dos semanas anteriores.';
+    $('avgs').innerHTML = PARTIES.map(function (p) {
+      var a = avgOf(cur, p.k), b = avgOf(prev, p.k), d = '';
+      if (a != null && b != null) {
+        var diff = Math.round((a - b) * 10) / 10;
+        d = diff === 0 ? 'sin cambios' : (diff > 0 ? '+' : '−') + Math.abs(diff).toFixed(1).replace('.', ',') + ' puntos';
+      }
+      return '<div class="avg" style="--c:' + p.c + '"><div class="name">' + p.k + '</div>' +
+        '<div class="num">' + fmtNum(a) + '<small>%</small></div><div class="delta">' + d + '</div></div>';
+    }).join('');
+  })();
+
+  /* ---------- controles ---------- */
+  $('chips').innerHTML = PARTIES.map(function (p) {
+    return '<button type="button" class="chip" data-k="' + p.k + '" aria-pressed="true" style="--c:' + p.c + '"><i></i>' + p.k + '</button>';
+  }).join('');
+  $('chips').addEventListener('click', function (e) {
+    var b = e.target.closest('button'); if (!b) return;
+    var k = b.getAttribute('data-k');
+    state.on[k] = !state.on[k];
+    b.setAttribute('aria-pressed', state.on[k]);
+    render();
+  });
+  function seg(id, key) {
+    $(id).addEventListener('click', function (e) {
+      var b = e.target.closest('button'); if (!b) return;
+      state[key] = b.getAttribute('data-v');
+      syncSmooth();
+      Array.prototype.forEach.call($(id).querySelectorAll('button'), function (x) {
+        x.setAttribute('aria-pressed', x === b);
+      });
+      render();
+    });
+  }
+  var sigBox = $('smoothbox'), sig = $('sigma'), sigOut = $('sigmaout');
+  function syncSmooth() { sigBox.hidden = state.mode !== 'trend'; }
+  sig.addEventListener('input', function () {
+    state.sigma = +sig.value;
+    sigOut.textContent = state.sigma + ' días';
+    render();
+  });
+  seg('range', 'range');
+  seg('mode', 'mode');
+
+  /* ---------- gráfico ---------- */
+  var svg = $('chart'), box = $('chartbox'), tip = $('tip');
+  var H = { pts: [], W: 900, k: 1 };
+
+  function rangeStart() {
+    if (state.range === 'call') return Date.UTC(2026, 9, 5);
+    if (state.range === '2026') return Date.UTC(2026, 0, 1);
+    if (state.range === '6m') {
+      var d = new Date(last);
+      return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() - 6, d.getUTCDate());
+    }
+    var f = new Date(polls[0].t);
+    return Date.UTC(f.getUTCFullYear(), f.getUTCMonth(), 1);
+  }
+
+  function smooth(pts, sigma) {
+    if (pts.length < 2) return [];
+    var cnt = pts.map(function (p) {
+      return pts.filter(function (q) {
+        return q.poll.pollster === p.poll.pollster && Math.abs(q.poll.t - p.poll.t) <= 7 * DAY;
+      }).length;
+    });
+    var out = [], t0 = pts[0].poll.t, t1 = pts[pts.length - 1].poll.t;
+    for (var g = t0; g <= t1; g += DAY) {
+      var sw = 0, sv = 0;
+      for (var i = 0; i < pts.length; i++) {
+        var dt = (pts[i].poll.t - g) / DAY;
+        if (Math.abs(dt) > 3 * sigma) continue;
+        var w = Math.exp(-dt * dt / (2 * sigma * sigma)) / cnt[i];
+        sw += w; sv += w * pts[i].v;
+      }
+      if (sw > 0.05) out.push([g, sv / sw]);
+    }
+    return out;
+  }
+
+  function render() {
+    var W = box.clientWidth || 900;
+    var Ht = Math.max(280, Math.min(460, Math.round(W * 0.52)));
+    var m = { l: 42, r: 16, t: 24, b: 30 };
+    var iw = W - m.l - m.r, ih = Ht - m.t - m.b;
+    var x0 = rangeStart(), x1 = ELECTION;
+    var X = function (t) { return m.l + (t - x0) / (x1 - x0) * iw; };
+
+    var vis = PARTIES.filter(function (p) { return state.on[p.k]; });
+    var series = vis.map(function (p) {
+      return {
+        p: p,
+        pts: polls.filter(function (r) { return r.t >= x0 && r.t <= x1 && r[p.k] != null; })
+                  .map(function (r) { return { poll: r, v: r[p.k] }; })
+      };
+    });
+
+    var max = 0;
+    series.forEach(function (s) { s.pts.forEach(function (q) { if (q.v > max) max = q.v; }); });
+    if (!max) max = 35;
+    var step = max > 20 ? 10 : 5;
+    var top = Math.ceil(max / step) * step;
+    var Y = function (v) { return m.t + ih - v / top * ih; };
+
+    var out = [];
+
+    // rejilla horizontal
+    for (var v = 0; v <= top; v += step) {
+      out.push('<line class="hline" x1="' + m.l + '" x2="' + (W - m.r) + '" y1="' + Y(v) + '" y2="' + Y(v) + '"/>');
+      out.push('<text class="tick" x="' + (m.l - 8) + '" y="' + (Y(v) + 4) + '" text-anchor="end">' + v + '%</text>');
+    }
+
+    // eje x: semanas si el periodo es corto, meses si no
+    var spanDays = (x1 - x0) / DAY;
+    if (spanDays <= 150) {
+      var wkEvery = iw / Math.ceil(spanDays / 7) >= 52 ? 1 : 2;
+      for (var wt = x0, wi = 0; wt <= x1; wt += 7 * DAY, wi++) {
+        out.push('<line class="vline" x1="' + X(wt) + '" x2="' + X(wt) + '" y1="' + m.t + '" y2="' + (m.t + ih) + '"/>');
+        if (wi % wkEvery === 0) {
+          var wd = new Date(wt);
+          out.push('<text class="tick" x="' + X(wt) + '" y="' + (Ht - 8) + '" text-anchor="middle">' + wd.getUTCDate() + ' ' + MONTHS[wd.getUTCMonth()] + '</text>');
+        }
+      }
+    } else {
+      var sd = new Date(x0), yy = sd.getUTCFullYear(), mm = sd.getUTCMonth();
+      if (sd.getUTCDate() > 1) mm++;
+      var months = [];
+      for (;;) {
+        var mt = Date.UTC(yy, mm, 1);
+        if (mt > x1) break;
+        months.push(mt);
+        mm++;
+      }
+      var every = [1, 2, 3, 6, 12].filter(function (st) { return iw / Math.ceil(months.length / st) >= 58; })[0] || 12;
+      var firstLabel = true;
+      months.forEach(function (mt) {
+        var d = new Date(mt), mo = d.getUTCMonth();
+        out.push('<line class="vline" x1="' + X(mt) + '" x2="' + X(mt) + '" y1="' + m.t + '" y2="' + (m.t + ih) + '"/>');
+        if (mo % every === 0) {
+          var label = MONTHS[mo] + ((mo === 0 || firstLabel) ? ' ' + d.getUTCFullYear() : '');
+          firstLabel = false;
+          out.push('<text class="tick" x="' + X(mt) + '" y="' + (Ht - 8) + '" text-anchor="middle">' + label + '</text>');
+        }
+      });
+    }
+
+    // día de las elecciones
+    out.push('<line class="elec" x1="' + X(ELECTION) + '" x2="' + X(ELECTION) + '" y1="' + m.t + '" y2="' + (m.t + ih) + '"/>');
+    out.push('<text class="eleclabel" x="' + (X(ELECTION) - 6) + '" y="' + (m.t + 13) + '" text-anchor="end">29-N</text>');
+
+    // datos
+    var hover = [], trendMap = {};
+    series.forEach(function (s) {
+      var c = s.p.c, pts = s.pts;
+      var ptOpacity = state.mode === 'points' ? 0.85 : (state.mode === 'trend' ? 0.28 : 0.5);
+      var r = state.mode === 'points' ? 3 : 2.2;
+      if (state.mode === 'line' && pts.length > 1) {
+        out.push('<path d="' + pts.map(function (q, i) { return (i ? 'L' : 'M') + X(q.poll.t).toFixed(1) + ' ' + Y(q.v).toFixed(1); }).join('') +
+          '" fill="none" stroke="' + c + '" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>');
+      }
+      if (state.mode === 'trend') {
+        var sm = smooth(pts, state.sigma), by = {};
+        sm.forEach(function (q) { by[Math.round(q[0] / DAY)] = q[1]; });
+        trendMap[s.p.k] = by;
+        if (sm.length > 1) {
+          out.push('<path d="' + sm.map(function (q, i) { return (i ? 'L' : 'M') + X(q[0]).toFixed(1) + ' ' + Y(q[1]).toFixed(1); }).join('') +
+            '" fill="none" stroke="' + c + '" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>');
+        }
+      }
+      pts.forEach(function (q) {
+        var px = X(q.poll.t), py = Y(q.v);
+        out.push('<circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="' + r + '" fill="' + c + '" fill-opacity="' + ptOpacity + '"/>');
+        if (state.mode !== 'trend') hover.push({ x: px, y: py, poll: q.poll, key: s.p.k, c: c });
+      });
+    });
+
+    out.push('<g id="hl"></g>');
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + Ht);
+    svg.innerHTML = out.join('');
+    H = { pts: hover, W: W, H: Ht, m: m, ih: ih, iw: iw, x0: x0, x1: x1, X: X, Y: Y, trend: state.mode === 'trend' ? trendMap : null };
+    hideTip();
+  }
+
+  function hideTip() {
+    tip.style.display = 'none';
+    var hl = svg.querySelector('#hl'); if (hl) hl.innerHTML = '';
+  }
+
+  function onMoveTrend(e) {
+    var r = svg.getBoundingClientRect();
+    if (!r.width) return;
+    var k = r.width / H.W;
+    var mx = (e.clientX - r.left) / k, my = (e.clientY - r.top) / k;
+    if (mx < H.m.l || mx > H.W - H.m.r) { hideTip(); return; }
+    var day = Math.round((H.x0 + (mx - H.m.l) / H.iw * (H.x1 - H.x0)) / DAY);
+    var vis = PARTIES.filter(function (p) { return state.on[p.k]; });
+    var vals = vis.map(function (p) { return { p: p, v: H.trend[p.k] ? H.trend[p.k][day] : undefined }; });
+    var have = vals.filter(function (q) { return q.v != null; });
+    if (!have.length) { hideTip(); return; }
+    var best = null, bd = Infinity;
+    have.forEach(function (q) {
+      var d = Math.abs(H.Y(q.v) - my);
+      if (d < bd) { bd = d; best = q.p.k; }
+    });
+    var xx = H.X(day * DAY);
+    svg.querySelector('#hl').innerHTML =
+      '<line x1="' + xx + '" x2="' + xx + '" y1="' + H.m.t + '" y2="' + (H.m.t + H.ih) + '" stroke="#8a93a3" stroke-dasharray="3 3"/>' +
+      have.map(function (q) {
+        return '<circle cx="' + xx + '" cy="' + H.Y(q.v) + '" r="4.5" fill="#fff" stroke="' + q.p.c + '" stroke-width="2.2"/>';
+      }).join('');
+    tip.innerHTML =
+      '<div class="who">' + fmtDate(day * DAY) + '</div>' +
+      '<div class="meta">Media suavizada (' + state.sigma + ' días)</div>' +
+      vals.map(function (q) {
+        return '<div class="row' + (q.p.k === best ? ' on' : '') + '"><i style="background:' + q.p.c + '"></i>' + q.p.k + '<b>' + fmtNum(q.v == null ? null : q.v) + (q.v != null ? '%' : '') + '</b></div>';
+      }).join('');
+    tip.style.display = 'block';
+    var tw = tip.offsetWidth, th = tip.offsetHeight;
+    var left = xx * k + 14;
+    if (left + tw > r.width) left = xx * k - tw - 14;
+    if (left < 0) left = 4;
+    var topPos = my * k - th - 12;
+    if (topPos < 0) topPos = my * k + 14;
+    tip.style.left = left + 'px';
+    tip.style.top = topPos + 'px';
+  }
+
+  function onMove(e) {
+    if (H.trend) { onMoveTrend(e); return; }
+    if (!H.pts.length) return;
+    var r = svg.getBoundingClientRect();
+    if (!r.width) return;
+    var k = r.width / H.W;
+    var mx = (e.clientX - r.left) / k, my = (e.clientY - r.top) / k;
+    var best = null, bd = Infinity;
+    for (var i = 0; i < H.pts.length; i++) {
+      var dx = H.pts[i].x - mx, dy = H.pts[i].y - my, d = dx * dx + dy * dy;
+      if (d < bd) { bd = d; best = H.pts[i]; }
+    }
+    if (!best || bd > 42 * 42) { hideTip(); return; }
+
+    svg.querySelector('#hl').innerHTML =
+      '<line x1="' + best.x + '" x2="' + best.x + '" y1="' + H.m.t + '" y2="' + (H.m.t + H.ih) + '" stroke="#8a93a3" stroke-dasharray="3 3"/>' +
+      '<circle cx="' + best.x + '" cy="' + best.y + '" r="6" fill="#fff" stroke="' + best.c + '" stroke-width="2.2"/>';
+
+    var p = best.poll;
+    tip.innerHTML =
+      '<div class="who">' + p.pollster + '</div>' +
+      '<div class="meta">' + fmtDate(p.t) + (p.n ? ' · ' + p.n.toLocaleString('es-ES') + ' entrevistas' : '') + '</div>' +
+      PARTIES.filter(function (q) { return state.on[q.k]; }).map(function (q) {
+        return '<div class="row' + (q.k === best.key ? ' on' : '') + '"><i style="background:' + q.c + '"></i>' + q.k + '<b>' + fmtNum(p[q.k]) + (p[q.k] != null ? '%' : '') + '</b></div>';
+      }).join('');
+    tip.style.display = 'block';
+    var tw = tip.offsetWidth, th = tip.offsetHeight;
+    var left = best.x * k + 14;
+    if (left + tw > r.width) left = best.x * k - tw - 14;
+    if (left < 0) left = 4;
+    var topPos = best.y * k - th - 12;
+    if (topPos < 0) topPos = best.y * k + 14;
+    tip.style.left = left + 'px';
+    tip.style.top = topPos + 'px';
+  }
+  svg.addEventListener('pointermove', onMove);
+  svg.addEventListener('pointerdown', onMove);
+  svg.addEventListener('pointerleave', hideTip);
+
+  var lastW = 0;
+  if (window.ResizeObserver) {
+    new ResizeObserver(function () {
+      var w = box.clientWidth;
+      if (w && w !== lastW) { lastW = w; render(); }
+    }).observe(box);
+  } else {
+    window.addEventListener('resize', render);
+  }
+
+  /* ---------- tabla ---------- */
+  $('thead').innerHTML = '<th>Fecha</th><th>Encuestadora</th><th class="r">Muestra</th>' +
+    PARTIES.map(function (p) { return '<th class="r">' + p.k + '</th>'; }).join('');
+
+  function renderTable() {
+    var rows = polls.slice().reverse().slice(0, state.shown);
+    $('tbody').innerHTML = rows.map(function (r) {
+      var mx = Math.max.apply(null, PARTIES.map(function (p) { return r[p.k] == null ? -1 : r[p.k]; }));
+      return '<tr><td class="date">' + fmtDate(r.t) + '</td><td>' + r.pollster + '</td><td class="r">' +
+        (r.n ? r.n.toLocaleString('es-ES') : '–') + '</td>' +
+        PARTIES.map(function (p) {
+          return '<td class="r' + (r[p.k] != null && r[p.k] === mx ? ' top' : '') + '">' + fmtNum(r[p.k]) + '</td>';
+        }).join('') + '</tr>';
+    }).join('');
+    $('more').style.display = state.shown >= polls.length ? 'none' : '';
+  }
+  $('more').addEventListener('click', function () { state.shown += 25; renderTable(); });
+
+  render();
+  renderTable();
+})();
+</script>
+</body>
+</html>
