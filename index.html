@@ -25,7 +25,15 @@
     color: var(--ink);
     font: 400 1rem/1.55 "Hanken Grotesk", system-ui, -apple-system, "Segoe UI", sans-serif;
   }
-  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  body { position: relative; overflow-x: hidden; }
+  .wrap { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  /* líneas de fondo: la tendencia real de cada partido, muy tenue */
+  .backline {
+    position: absolute; top: 0; left: 0; width: 100%; z-index: 0; pointer-events: none;
+    height: clamp(380px, 60vw, 640px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 30%, transparent 100%);
+            mask-image: linear-gradient(to bottom, #000 30%, transparent 100%);
+  }
 
   header { padding: 48px 0 32px; }
   h1 {
@@ -121,6 +129,7 @@
 </style>
 </head>
 <body>
+<svg class="backline" id="backline" viewBox="0 0 1000 400" preserveAspectRatio="none" aria-hidden="true" focusable="false"></svg>
 <div class="wrap">
   <header>
     <h1>Encuestas del 29-N</h1>
@@ -547,8 +556,23 @@
   }
   $('more').addEventListener('click', function () { state.shown += 25; renderTable(); });
 
+  /* ---------- líneas de fondo ---------- */
+  function drawBackline() {
+    var t0 = polls[0].t, t1 = ELECTION;
+    $('backline').innerHTML = PARTIES.map(function (p) {
+      var pts = polls.filter(function (r) { return r[p.k] != null; })
+                     .map(function (r) { return { poll: r, v: r[p.k] }; });
+      var sm = smooth(pts, 12);
+      if (sm.length < 2) return '';
+      return '<path d="' + sm.map(function (q, i) {
+        return (i ? 'L' : 'M') + ((q[0] - t0) / (t1 - t0) * 1000).toFixed(1) + ' ' + (340 - q[1] / 36 * 280).toFixed(1);
+      }).join('') + '" fill="none" stroke="' + p.c + '" stroke-width="3" stroke-opacity="0.2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>';
+    }).join('');
+  }
+
   render();
   renderTable();
+  drawBackline();
 })();
 </script>
 </body>
