@@ -73,7 +73,11 @@
     margin-bottom: -1px; padding: 6px 10px; font: inherit; font-size: 0.9rem; color: var(--muted); cursor: pointer;
   }
   .seg button[aria-pressed="true"] { color: var(--ink); border-bottom-color: var(--ink); font-weight: 600; }
-  .options { display: flex; flex-wrap: wrap; gap: 8px 28px; }
+  .options { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px; }
+  .smooth { display: inline-flex; align-items: center; gap: 8px; font-size: 0.9rem; color: var(--muted); }
+  .smooth[hidden] { display: none; }
+  .smooth input { width: 120px; accent-color: var(--ink); }
+  .smooth output { min-width: 4.4em; color: var(--ink); font-variant-numeric: tabular-nums; }
   button:focus-visible { outline: 2px solid #1F78C8; outline-offset: 2px; }
 
   /* gráfico */
@@ -136,6 +140,7 @@
       <div class="group" id="chips" role="group" aria-label="Partidos"></div>
       <div class="options">
         <div class="seg" id="range" role="group" aria-label="Periodo">
+          <button type="button" data-v="call" aria-pressed="false">Desde la convocatoria</button>
           <button type="button" data-v="2026" aria-pressed="true">2026</button>
           <button type="button" data-v="6m" aria-pressed="false">Últimos 6 meses</button>
           <button type="button" data-v="all" aria-pressed="false">Desde 2023</button>
@@ -145,6 +150,10 @@
           <button type="button" data-v="points" aria-pressed="false">Puntos</button>
           <button type="button" data-v="trend" aria-pressed="false">Tendencia</button>
         </div>
+        <label class="smooth" id="smoothbox" hidden>Suavizado
+          <input type="range" id="sigma" min="2" max="30" step="1" value="7" aria-label="Suavizado de la tendencia, en días">
+          <output id="sigmaout" for="sigma">7 días</output>
+        </label>
       </div>
     </div>
     <div class="chartbox" id="chartbox">
@@ -167,7 +176,7 @@
 
   <footer>
     <p>Los datos salen de la tabla de encuestas de Wikipedia (<a href="https://en.wikipedia.org/wiki/Opinion_polling_for_the_2026_Spanish_general_election">Opinion polling for the 2026 Spanish general election</a>). La fecha de cada encuesta es el punto medio de su trabajo de campo.</p>
-    <p>Frente Amplio incluye a Front València. No se cuentan las encuestas de PSOE, The Objective, CIS, SW Demoscopia/La Séptima, VOX/The Objective ni SocioMétrica/PP. En la tendencia, cada punto pesa menos cuando una misma encuestadora publica muchas seguidas.</p>
+    <p>Frente Amplio incluye a Front València. No se cuentan las encuestas de PSOE, The Objective, CIS, SW Demoscopia/La Séptima, VOX/The Objective ni SocioMétrica/PP. La tendencia es una media con pesos gaussianos: el control de suavizado marca cuántos días a cada lado cuentan (más días, línea más lisa), y cada punto pesa menos cuando una misma encuestadora publica muchas seguidas.</p>
     <p id="updated"></p>
   </footer>
 </div>
@@ -206,7 +215,7 @@
     return;
   }
 
-  var state = { range: '2026', mode: 'line', on: {}, shown: 12 };
+  var state = { range: '2026', mode: 'line', on: {}, shown: 12, sigma: 7 };
   PARTIES.forEach(function (p) { state.on[p.k] = true; });
 
   var last = polls[polls.length - 1].t;
@@ -271,12 +280,20 @@
     $(id).addEventListener('click', function (e) {
       var b = e.target.closest('button'); if (!b) return;
       state[key] = b.getAttribute('data-v');
+      syncSmooth();
       Array.prototype.forEach.call($(id).querySelectorAll('button'), function (x) {
         x.setAttribute('aria-pressed', x === b);
       });
       render();
     });
   }
+  var sigBox = $('smoothbox'), sig = $('sigma'), sigOut = $('sigmaout');
+  function syncSmooth() { sigBox.hidden = state.mode !== 'trend'; }
+  sig.addEventListener('input', function () {
+    state.sigma = +sig.value;
+    sigOut.textContent = state.sigma + ' días';
+    render();
+  });
   seg('range', 'range');
   seg('mode', 'mode');
 
@@ -285,6 +302,7 @@
   var H = { pts: [], W: 900, k: 1 };
 
   function rangeStart() {
+    if (state.range === 'call') return Date.UTC(2026, 9, 5);
     if (state.range === '2026') return Date.UTC(2026, 0, 1);
     if (state.range === '6m') {
       var d = new Date(last);
@@ -347,35 +365,46 @@
       out.push('<text class="tick" x="' + (m.l - 8) + '" y="' + (Y(v) + 4) + '" text-anchor="end">' + v + '%</text>');
     }
 
-    // meses
-    var sd = new Date(x0), yy = sd.getUTCFullYear(), mm = sd.getUTCMonth();
-    if (sd.getUTCDate() > 1) mm++;
-    var months = [];
-    for (;;) {
-      var mt = Date.UTC(yy, mm, 1);
-      if (mt > x1) break;
-      months.push(mt);
-      mm++;
-    }
-    var every = [1, 2, 3, 6, 12].filter(function (s) { return iw / Math.ceil(months.length / s) >= 58; })[0] || 12;
-    var firstLabel = true;
-    months.forEach(function (mt) {
-      var d = new Date(mt), mo = d.getUTCMonth();
-      out.push('<line class="vline" x1="' + X(mt) + '" x2="' + X(mt) + '" y1="' + m.t + '" y2="' + (m.t + ih) + '"/>');
-      if (mo % every === 0) {
-        var label = MONTHS[mo] + ((mo === 0 || firstLabel) ? ' ' + d.getUTCFullYear() : '');
-        firstLabel = false;
-        out.push('<text class="tick" x="' + X(mt) + '" y="' + (Ht - 8) + '" text-anchor="middle">' + label + '</text>');
+    // eje x: semanas si el periodo es corto, meses si no
+    var spanDays = (x1 - x0) / DAY;
+    if (spanDays <= 150) {
+      var wkEvery = iw / Math.ceil(spanDays / 7) >= 52 ? 1 : 2;
+      for (var wt = x0, wi = 0; wt <= x1; wt += 7 * DAY, wi++) {
+        out.push('<line class="vline" x1="' + X(wt) + '" x2="' + X(wt) + '" y1="' + m.t + '" y2="' + (m.t + ih) + '"/>');
+        if (wi % wkEvery === 0) {
+          var wd = new Date(wt);
+          out.push('<text class="tick" x="' + X(wt) + '" y="' + (Ht - 8) + '" text-anchor="middle">' + wd.getUTCDate() + ' ' + MONTHS[wd.getUTCMonth()] + '</text>');
+        }
       }
-    });
+    } else {
+      var sd = new Date(x0), yy = sd.getUTCFullYear(), mm = sd.getUTCMonth();
+      if (sd.getUTCDate() > 1) mm++;
+      var months = [];
+      for (;;) {
+        var mt = Date.UTC(yy, mm, 1);
+        if (mt > x1) break;
+        months.push(mt);
+        mm++;
+      }
+      var every = [1, 2, 3, 6, 12].filter(function (st) { return iw / Math.ceil(months.length / st) >= 58; })[0] || 12;
+      var firstLabel = true;
+      months.forEach(function (mt) {
+        var d = new Date(mt), mo = d.getUTCMonth();
+        out.push('<line class="vline" x1="' + X(mt) + '" x2="' + X(mt) + '" y1="' + m.t + '" y2="' + (m.t + ih) + '"/>');
+        if (mo % every === 0) {
+          var label = MONTHS[mo] + ((mo === 0 || firstLabel) ? ' ' + d.getUTCFullYear() : '');
+          firstLabel = false;
+          out.push('<text class="tick" x="' + X(mt) + '" y="' + (Ht - 8) + '" text-anchor="middle">' + label + '</text>');
+        }
+      });
+    }
 
     // día de las elecciones
     out.push('<line class="elec" x1="' + X(ELECTION) + '" x2="' + X(ELECTION) + '" y1="' + m.t + '" y2="' + (m.t + ih) + '"/>');
     out.push('<text class="eleclabel" x="' + (X(ELECTION) - 6) + '" y="' + (m.t + 13) + '" text-anchor="end">29-N</text>');
 
     // datos
-    var hover = [];
-    var sigma = (x1 - x0) / DAY > 500 ? 10 : 6;
+    var hover = [], trendMap = {};
     series.forEach(function (s) {
       var c = s.p.c, pts = s.pts;
       var ptOpacity = state.mode === 'points' ? 0.85 : (state.mode === 'trend' ? 0.28 : 0.5);
@@ -385,7 +414,9 @@
           '" fill="none" stroke="' + c + '" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>');
       }
       if (state.mode === 'trend') {
-        var sm = smooth(pts, sigma);
+        var sm = smooth(pts, state.sigma), by = {};
+        sm.forEach(function (q) { by[Math.round(q[0] / DAY)] = q[1]; });
+        trendMap[s.p.k] = by;
         if (sm.length > 1) {
           out.push('<path d="' + sm.map(function (q, i) { return (i ? 'L' : 'M') + X(q[0]).toFixed(1) + ' ' + Y(q[1]).toFixed(1); }).join('') +
             '" fill="none" stroke="' + c + '" stroke-width="2.6" stroke-linejoin="round" stroke-linecap="round"/>');
@@ -394,14 +425,14 @@
       pts.forEach(function (q) {
         var px = X(q.poll.t), py = Y(q.v);
         out.push('<circle cx="' + px.toFixed(1) + '" cy="' + py.toFixed(1) + '" r="' + r + '" fill="' + c + '" fill-opacity="' + ptOpacity + '"/>');
-        hover.push({ x: px, y: py, poll: q.poll, key: s.p.k, c: c });
+        if (state.mode !== 'trend') hover.push({ x: px, y: py, poll: q.poll, key: s.p.k, c: c });
       });
     });
 
     out.push('<g id="hl"></g>');
     svg.setAttribute('viewBox', '0 0 ' + W + ' ' + Ht);
     svg.innerHTML = out.join('');
-    H = { pts: hover, W: W, H: Ht, m: m, ih: ih };
+    H = { pts: hover, W: W, H: Ht, m: m, ih: ih, iw: iw, x0: x0, x1: x1, X: X, Y: Y, trend: state.mode === 'trend' ? trendMap : null };
     hideTip();
   }
 
@@ -410,7 +441,47 @@
     var hl = svg.querySelector('#hl'); if (hl) hl.innerHTML = '';
   }
 
+  function onMoveTrend(e) {
+    var r = svg.getBoundingClientRect();
+    if (!r.width) return;
+    var k = r.width / H.W;
+    var mx = (e.clientX - r.left) / k, my = (e.clientY - r.top) / k;
+    if (mx < H.m.l || mx > H.W - H.m.r) { hideTip(); return; }
+    var day = Math.round((H.x0 + (mx - H.m.l) / H.iw * (H.x1 - H.x0)) / DAY);
+    var vis = PARTIES.filter(function (p) { return state.on[p.k]; });
+    var vals = vis.map(function (p) { return { p: p, v: H.trend[p.k] ? H.trend[p.k][day] : undefined }; });
+    var have = vals.filter(function (q) { return q.v != null; });
+    if (!have.length) { hideTip(); return; }
+    var best = null, bd = Infinity;
+    have.forEach(function (q) {
+      var d = Math.abs(H.Y(q.v) - my);
+      if (d < bd) { bd = d; best = q.p.k; }
+    });
+    var xx = H.X(day * DAY);
+    svg.querySelector('#hl').innerHTML =
+      '<line x1="' + xx + '" x2="' + xx + '" y1="' + H.m.t + '" y2="' + (H.m.t + H.ih) + '" stroke="#8a93a3" stroke-dasharray="3 3"/>' +
+      have.map(function (q) {
+        return '<circle cx="' + xx + '" cy="' + H.Y(q.v) + '" r="4.5" fill="#fff" stroke="' + q.p.c + '" stroke-width="2.2"/>';
+      }).join('');
+    tip.innerHTML =
+      '<div class="who">' + fmtDate(day * DAY) + '</div>' +
+      '<div class="meta">Media suavizada (' + state.sigma + ' días)</div>' +
+      vals.map(function (q) {
+        return '<div class="row' + (q.p.k === best ? ' on' : '') + '"><i style="background:' + q.p.c + '"></i>' + q.p.k + '<b>' + fmtNum(q.v == null ? null : q.v) + (q.v != null ? '%' : '') + '</b></div>';
+      }).join('');
+    tip.style.display = 'block';
+    var tw = tip.offsetWidth, th = tip.offsetHeight;
+    var left = xx * k + 14;
+    if (left + tw > r.width) left = xx * k - tw - 14;
+    if (left < 0) left = 4;
+    var topPos = my * k - th - 12;
+    if (topPos < 0) topPos = my * k + 14;
+    tip.style.left = left + 'px';
+    tip.style.top = topPos + 'px';
+  }
+
   function onMove(e) {
+    if (H.trend) { onMoveTrend(e); return; }
     if (!H.pts.length) return;
     var r = svg.getBoundingClientRect();
     if (!r.width) return;
